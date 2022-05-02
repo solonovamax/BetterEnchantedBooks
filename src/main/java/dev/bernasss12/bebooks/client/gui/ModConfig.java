@@ -1,5 +1,6 @@
 package dev.bernasss12.bebooks.client.gui;
 
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
@@ -26,35 +27,62 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Properties;
 
 import static dev.bernasss12.bebooks.BetterEnchantedBooks.LOGGER;
-import static dev.bernasss12.bebooks.client.gui.ModConstants.*;
+import static dev.bernasss12.bebooks.client.gui.ModConstants.DEFAULT_BOOK_STRIP_COLOR;
+import static dev.bernasss12.bebooks.client.gui.ModConstants.DEFAULT_CHECKED_ITEMS_LIST;
+import static dev.bernasss12.bebooks.client.gui.ModConstants.DEFAULT_COLOR_BOOKS;
+import static dev.bernasss12.bebooks.client.gui.ModConstants.DEFAULT_COLOR_PRIORITY_SETTING;
+import static dev.bernasss12.bebooks.client.gui.ModConstants.DEFAULT_CURSE_COLOR_OVERRIDE;
+import static dev.bernasss12.bebooks.client.gui.ModConstants.DEFAULT_ENCHANTMENT_COLORS;
+import static dev.bernasss12.bebooks.client.gui.ModConstants.DEFAULT_GLINT_SETTING;
+import static dev.bernasss12.bebooks.client.gui.ModConstants.DEFAULT_KEEP_CURSES_BELOW;
+import static dev.bernasss12.bebooks.client.gui.ModConstants.DEFAULT_SHOW_ENCHANTMENT_MAX_LEVEL;
+import static dev.bernasss12.bebooks.client.gui.ModConstants.DEFAULT_SORTING_SETTING;
+import static dev.bernasss12.bebooks.client.gui.ModConstants.DEFAULT_TOOLTIP_ICON_SCALE;
+import static dev.bernasss12.bebooks.client.gui.ModConstants.DEFAULT_TOOLTIP_SETTING;
+import static dev.bernasss12.bebooks.client.gui.ModConstants.SETTINGS_VERSION;
+
 
 @Environment(EnvType.CLIENT)
 public class ModConfig {
+    // Tooltip Settings
+    public static final List<ItemStack> checkedItemsList = DEFAULT_CHECKED_ITEMS_LIST; // TODO currently not modifiable
+    
     private static final Path CONFIG_DIR = FabricLoader.getInstance().getConfigDir().resolve("bebooks");
-
+    
     public static boolean configsFirstLoaded = false;
+    
     public static Map<String, EnchantmentData> enchantmentDataMap = new HashMap<>();
-
+    
     // Sorting Settings
     public static SortingSetting sortingSetting;
+    
     public static boolean doKeepCursesBelow;
-
-    // Tooltip Settings
-    public static List<ItemStack> checkedItemsList = DEFAULT_CHECKED_ITEMS_LIST; // TODO currently not modifiable
+    
     public static boolean doShowEnchantmentMaxLevel;
+    
     public static TooltipSetting tooltipSetting;
-
+    
+    public static float tooltipIconScale;
+    
     // Coloring Settings
     public static boolean doColorBooks;
+    
     public static boolean doCurseColorOverride;
+    
     public static SortingSetting colorPrioritySetting;
-
+    
     // Defines whether the enchanted book has a visible glint or not. Default is NOT
     public static Boolean glintSetting;
-
+    
     public static void loadConfigDefaults() {
         // Sorting Settings
         sortingSetting = DEFAULT_SORTING_SETTING;
@@ -66,46 +94,15 @@ public class ModConfig {
         // Tooltip Settings
         doShowEnchantmentMaxLevel = DEFAULT_SHOW_ENCHANTMENT_MAX_LEVEL;
         tooltipSetting = DEFAULT_TOOLTIP_SETTING;
+        tooltipIconScale = DEFAULT_TOOLTIP_ICON_SCALE;
         // Enchantment Glint
         glintSetting = DEFAULT_GLINT_SETTING;
     }
-
-    private static void loadEnchantmentData() {
-        Path path = CONFIG_DIR.resolve("enchantment_data.json");
-        Gson gson = new Gson();
-
-        if (!Files.exists(path))
-            return;
-
-        // Try to parse the enchantment data from the json file
-        try {
-            String json = Files.readString(path);
-            enchantmentDataMap = gson.fromJson(json, new TypeToken<Map<String, EnchantmentData>>() {}.getType());
-        } catch (Exception e) {
-            LOGGER.error("Couldn't load enchantment data!", e);
-        }
-    }
-
-    // Note: this should be executed after all mods registered their enchantments (like on the title screen)
-    private static void populateEnchantmentData() {
-        // Set enchantment values for all existing data entries
-        for (var entry : enchantmentDataMap.entrySet()) {
-            entry.getValue().enchantment = Registry.ENCHANTMENT.get(Identifier.tryParse(entry.getKey()));
-        }
-
-        // Create data entries for all new enchantments
-        int index = enchantmentDataMap.size();
-        for (Enchantment enchantment : Registry.ENCHANTMENT) {
-            String id = Objects.requireNonNull(Registry.ENCHANTMENT.getId(enchantment)).toString();
-            if (enchantmentDataMap.putIfAbsent(id, new EnchantmentData(enchantment, index, DEFAULT_ENCHANTMENT_COLORS.getOrDefault(enchantment, DEFAULT_BOOK_STRIP_COLOR))) == null)
-                index++;
-        }
-    }
-
+    
     public static void saveEnchantmentData() {
         Path path = CONFIG_DIR.resolve("enchantment_data.json");
         Gson gson = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
-
+        
         // Try to save the enchantment data as a json file
         try {
             String json = gson.toJson(enchantmentDataMap);
@@ -114,24 +111,24 @@ public class ModConfig {
             LOGGER.error("Couldn't save enchantment data!", e);
         }
     }
-
+    
     public static void loadAndPopulateConfig() {
         Path path = CONFIG_DIR.resolve("config.properties");
-
+        
         loadConfigDefaults();
-
+        
         // Try to read and parse config file
         if (Files.exists(path)) {
             try (BufferedReader reader = Files.newBufferedReader(path)) {
                 Properties properties = new Properties();
                 properties.load(reader);
-
+                
                 // Get setting version
                 int version = 0;
                 if (properties.containsKey("version")) {
                     version = Integer.parseInt(properties.getProperty("version"));
                 }
-
+                
                 // Sorting Settings
                 if (version == 0) {
                     if (Boolean.parseBoolean(properties.getProperty("sort"))) {
@@ -147,7 +144,7 @@ public class ModConfig {
                     sortingSetting = SortingSetting.fromString(properties.getProperty("sorting_mode"));
                 }
                 doKeepCursesBelow = Boolean.parseBoolean(properties.getProperty("keep_curses_below"));
-
+                
                 // Coloring Settings
                 doColorBooks = Boolean.parseBoolean(properties.getProperty("color_books"));
                 doCurseColorOverride = Boolean.parseBoolean(properties.getProperty("override_curse_color"));
@@ -160,33 +157,34 @@ public class ModConfig {
                 } else {
                     colorPrioritySetting = SortingSetting.fromString(properties.getProperty("color_mode"));
                 }
-
+                
                 // Tooltip Settings
                 doShowEnchantmentMaxLevel = Boolean.parseBoolean(properties.getProperty("show_max_enchantment_level"));
                 tooltipSetting = TooltipSetting.fromString(properties.getProperty("tooltip_mode"));
-
+                tooltipIconScale = Float.parseFloat(properties.getProperty("tooltip_scale"));
+                
                 // Enchantment Glint
                 glintSetting = Boolean.parseBoolean(properties.getProperty("enchanted_book_glint"));
             } catch (Exception e) {
                 LOGGER.error("Failed to read config file!", e);
             }
         }
-
+        
         loadEnchantmentData();
         populateEnchantmentData();
-
+        
         configsFirstLoaded = true;
     }
-
+    
     public static void saveConfig() {
         Path path = CONFIG_DIR.resolve("config.properties");
-
+        
         try {
             Files.createDirectories(CONFIG_DIR);
         } catch (IOException e) {
             LOGGER.error("Couldn't create config directory!", e);
         }
-
+        
         // Try to write config file
         try (BufferedWriter writer = Files.newBufferedWriter(path)) {
             Properties properties = new Properties();
@@ -202,72 +200,146 @@ public class ModConfig {
             // Tooltip Settings
             properties.setProperty("show_max_enchantment_level", doShowEnchantmentMaxLevel + "");
             properties.setProperty("tooltip_mode", tooltipSetting.toString());
+            properties.setProperty("tooltip_scale", String.valueOf(tooltipIconScale));
             // Enchantment Glint
             properties.setProperty("enchanted_book_glint", glintSetting.toString());
             properties.store(writer, null);
         } catch (Exception e) {
             LOGGER.error("Couldn't save config file!", e);
         }
-
+        
         saveEnchantmentData();
     }
-
+    
     @SuppressWarnings("rawtypes")
     public static ConfigBuilder getConfigScreen() {
         // Base config builder
         ConfigBuilder builder = ConfigBuilder.create();
         builder.setDefaultBackgroundTexture(new Identifier("minecraft:textures/block/spruce_planks.png"));
         builder.setGlobalized(true);
-
+        
         // Creating categories
         ConfigCategory sortingCategory = builder.getOrCreateCategory(new TranslatableText("category.bebooks.sorting_settings"));
         ConfigCategory bookColoring = builder.getOrCreateCategory(new TranslatableText("category.bebooks.book_coloring_settings"));
         ConfigCategory tooltipCategory = builder.getOrCreateCategory(new TranslatableText("category.bebooks.tooltip_settings"));
-
+        
         // Adding entries to the categories
         // Sorting settings page
         builder.setDefaultBackgroundTexture(new Identifier("minecraft:textures/block/spruce_planks.png"));
         ConfigEntryBuilder entryBuilder = builder.entryBuilder();
-        sortingCategory.addEntry(entryBuilder.startEnumSelector(new TranslatableText("entry.bebooks.sorting_settings.sorting_mode"), SortingSetting.class, sortingSetting).setDefaultValue(DEFAULT_SORTING_SETTING).setSaveConsumer(setting -> sortingSetting = setting).build());
-        sortingCategory.addEntry(entryBuilder.startBooleanToggle(new TranslatableText("entry.bebooks.sorting_settings.keep_curses_at_bottom"), doKeepCursesBelow).setSaveConsumer((doKeepCursesBelowInput) -> doKeepCursesBelow = doKeepCursesBelowInput).build());
-
+        sortingCategory.addEntry(entryBuilder.startEnumSelector(new TranslatableText("entry.bebooks.sorting_settings.sorting_mode"),
+                                                                SortingSetting.class, sortingSetting)
+                                             .setDefaultValue(DEFAULT_SORTING_SETTING)
+                                             .setSaveConsumer(setting -> sortingSetting = setting)
+                                             .build());
+        sortingCategory.addEntry(entryBuilder.startBooleanToggle(
+                                                     new TranslatableText("entry.bebooks.sorting_settings.keep_curses_at_bottom"), doKeepCursesBelow)
+                                             .setSaveConsumer((doKeepCursesBelowInput) -> doKeepCursesBelow = doKeepCursesBelowInput)
+                                             .build());
+        
         // Coloring settings page
-        bookColoring.addEntry(entryBuilder.startBooleanToggle(new TranslatableText("entry.bebooks.book_glint_settings.active"), glintSetting).setSaveConsumer((showEnchantmentGlint) -> glintSetting = showEnchantmentGlint).build());
-        bookColoring.addEntry(entryBuilder.startBooleanToggle(new TranslatableText("entry.bebooks.book_coloring_settings.active"), doColorBooks).setSaveConsumer((doColorBooksInput) -> doColorBooks = doColorBooksInput).build());
-        bookColoring.addEntry(entryBuilder.startEnumSelector(new TranslatableText("entry.bebooks.book_coloring_settings.color_mode"), SortingSetting.class, colorPrioritySetting).setDefaultValue(DEFAULT_COLOR_PRIORITY_SETTING).setSaveConsumer(setting -> colorPrioritySetting = setting).build());
-        bookColoring.addEntry(entryBuilder.startBooleanToggle(new TranslatableText("entry.bebooks.book_coloring_settings.curse_color_override_others"), doCurseColorOverride).setSaveConsumer((doColorOverrideWhenCursedInput) -> doCurseColorOverride = doColorOverrideWhenCursedInput).build());
+        bookColoring.addEntry(entryBuilder.startBooleanToggle(new TranslatableText("entry.bebooks.book_glint_settings.active"),
+                                                              glintSetting)
+                                          .setSaveConsumer((showEnchantmentGlint) -> glintSetting = showEnchantmentGlint)
+                                          .build());
+        bookColoring.addEntry(entryBuilder.startBooleanToggle(new TranslatableText("entry.bebooks.book_coloring_settings.active"),
+                                                              doColorBooks)
+                                          .setSaveConsumer((doColorBooksInput) -> doColorBooks = doColorBooksInput)
+                                          .build());
+        bookColoring.addEntry(entryBuilder.startEnumSelector(new TranslatableText("entry.bebooks.book_coloring_settings.color_mode"),
+                                                             SortingSetting.class, colorPrioritySetting)
+                                          .setDefaultValue(DEFAULT_COLOR_PRIORITY_SETTING)
+                                          .setSaveConsumer(setting -> colorPrioritySetting = setting).build());
+        bookColoring.addEntry(entryBuilder.startBooleanToggle(
+                                                  new TranslatableText("entry.bebooks.book_coloring_settings.curse_color_override_others"), doCurseColorOverride)
+                                          .setSaveConsumer(
+                                                  (doColorOverrideWhenCursedInput) -> doCurseColorOverride = doColorOverrideWhenCursedInput)
+                                          .build());
+        
         ArrayList<AbstractConfigListEntry> enchantments = new ArrayList<>();
         for (var dataEntry : enchantmentDataMap.entrySet()) {
             EnchantmentData enchData = dataEntry.getValue();
             if (enchData.enchantment == null) continue; // not registered
-
-            enchantments.add(entryBuilder
-                .startColorField(new LiteralText(enchData.getTranslatedName()), enchData.color)
-                .setDefaultValue(DEFAULT_ENCHANTMENT_COLORS.getOrDefault(enchData.enchantment, DEFAULT_BOOK_STRIP_COLOR))
-                .setSaveConsumer((guiEntryColor) -> {
-                    EnchantmentData data = enchantmentDataMap.get(dataEntry.getKey());
-                    data.color = guiEntryColor;
-                }).build());
+            
+            enchantments.add(entryBuilder.startColorField(new LiteralText(enchData.getTranslatedName()), enchData.color)
+                                         .setDefaultValue(
+                                                 DEFAULT_ENCHANTMENT_COLORS.getOrDefault(enchData.enchantment, DEFAULT_BOOK_STRIP_COLOR))
+                                         .setSaveConsumer((guiEntryColor) -> {
+                                             EnchantmentData data = enchantmentDataMap.get(dataEntry.getKey());
+                                             data.color = guiEntryColor;
+                                         })
+                                         .build());
         }
         enchantments.sort(Comparator.comparing(entry -> entry.getFieldName().asString()));
-        bookColoring.addEntry(entryBuilder.startSubCategory(new TranslatableText("subcategory.bebooks.book_coloring_settings.enchantment_color"), enchantments).build());
-
+        bookColoring.addEntry(
+                entryBuilder.startSubCategory(new TranslatableText("subcategory.bebooks.book_coloring_settings.enchantment_color"),
+                                              enchantments)
+                            .build());
+        
         // Tooltip settings page
-        tooltipCategory.addEntry(entryBuilder.startBooleanToggle(new TranslatableText("entry.bebooks.tooltip_settings.show_enchantment_max_level"), doShowEnchantmentMaxLevel).setDefaultValue(DEFAULT_SHOW_ENCHANTMENT_MAX_LEVEL).setSaveConsumer((showEnchantmentMaxLevel) -> doShowEnchantmentMaxLevel = showEnchantmentMaxLevel).build());
-        tooltipCategory.addEntry(entryBuilder.startEnumSelector(new TranslatableText("entry.bebooks.tooltip_settings.tooltip_mode"), TooltipSetting.class, tooltipSetting).setDefaultValue(DEFAULT_TOOLTIP_SETTING).setSaveConsumer(setting -> tooltipSetting = setting).build());
+        tooltipCategory.addEntry(entryBuilder.startBooleanToggle(
+                                                     new TranslatableText("entry.bebooks.tooltip_settings.show_enchantment_max_level"), doShowEnchantmentMaxLevel)
+                                             .setDefaultValue(DEFAULT_SHOW_ENCHANTMENT_MAX_LEVEL)
+                                             .setSaveConsumer(
+                                                     (showEnchantmentMaxLevel) -> doShowEnchantmentMaxLevel = showEnchantmentMaxLevel)
+                                             .build());
+        tooltipCategory.addEntry(entryBuilder.startEnumSelector(new TranslatableText("entry.bebooks.tooltip_settings.tooltip_mode"),
+                                                                TooltipSetting.class, tooltipSetting).setDefaultValue(
+                DEFAULT_TOOLTIP_SETTING).setSaveConsumer(setting -> tooltipSetting = setting).build());
+        tooltipCategory.addEntry(entryBuilder.startFloatField(new TranslatableText("entry.bebooks.tooltip_settings.tooltip_scale"),
+                                                              tooltipIconScale)
+                                             .setDefaultValue(DEFAULT_TOOLTIP_ICON_SCALE)
+                                             .setSaveConsumer(scale -> tooltipIconScale = scale)
+                                             .build());
         builder.setSavingRunnable(() -> {
             BetterEnchantedBooks.clearCachedColors();
             saveConfig();
         });
-
+        
         return builder;
     }
-
+    
+    private static void loadEnchantmentData() {
+        Path path = CONFIG_DIR.resolve("enchantment_data.json");
+        Gson gson = new Gson();
+        
+        if (!Files.exists(path))
+            return;
+        
+        // Try to parse the enchantment data from the json file
+        try {
+            String json = Files.readString(path);
+            enchantmentDataMap = gson.fromJson(json, new TypeToken<Map<String, EnchantmentData>>() {
+            }.getType());
+        } catch (Exception e) {
+            LOGGER.error("Couldn't load enchantment data!", e);
+        }
+    }
+    
+    // Note: this should be executed after all mods registered their enchantments (like on the title screen)
+    private static void populateEnchantmentData() {
+        // Set enchantment values for all existing data entries
+        for (var entry : enchantmentDataMap.entrySet()) {
+            entry.getValue().enchantment = Registry.ENCHANTMENT.get(Identifier.tryParse(entry.getKey()));
+        }
+        
+        // Create data entries for all new enchantments
+        int index = enchantmentDataMap.size();
+        for (Enchantment enchantment : Registry.ENCHANTMENT) {
+            String id = Objects.requireNonNull(Registry.ENCHANTMENT.getId(enchantment)).toString();
+            if (enchantmentDataMap.putIfAbsent(id, new EnchantmentData(enchantment, index,
+                                                                       DEFAULT_ENCHANTMENT_COLORS.getOrDefault(enchantment,
+                                                                                                               DEFAULT_BOOK_STRIP_COLOR))) ==
+                null)
+                index++;
+        }
+    }
+    
     public enum TooltipSetting implements SelectionListEntry.Translatable {
         ENABLED,
         ON_SHIFT,
         DISABLED;
-
+        
         public static TooltipSetting fromString(String string) {
             for (TooltipSetting value : TooltipSetting.values()) {
                 if (value.toString().equals(string)) {
@@ -276,18 +348,20 @@ public class ModConfig {
             }
             return DEFAULT_TOOLTIP_SETTING;
         }
-
+        
         @Override
         public @NotNull String getKey() {
             return "enum.bebooks.tooltip_settings." + toString().toLowerCase();
         }
     }
-
+    
+    
     public enum SortingSetting implements SelectionListEntry.Translatable {
         ALPHABETICALLY,
         CUSTOM,
+        LEVEL,
         DISABLED;
-
+        
         public static SortingSetting fromString(String string) {
             for (SortingSetting value : SortingSetting.values()) {
                 if (value.toString().equals(string)) {
@@ -296,33 +370,37 @@ public class ModConfig {
             }
             return DEFAULT_SORTING_SETTING;
         }
-
+        
         @Override
         public @NotNull String getKey() {
             return "enum.bebooks.sorting_settings." + toString().toLowerCase();
         }
     }
-
+    
+    
     // Note: transient fields are ignored by Gson. When loaded, the constructor won't be called.
     public static class EnchantmentData {
         public int orderIndex;
+        
         public int color;
+        
         public transient Enchantment enchantment;
+        
         private transient String translatedName;
-
+        
         public EnchantmentData(Enchantment enchantment, int index, int color) {
             this.orderIndex = index;
             this.color = color;
             this.enchantment = enchantment;
         }
-
+        
         @NotNull
         public String getTranslatedName() {
             if (enchantment == null) return ""; // dummy value
             if (translatedName != null) return translatedName;
-
+            
             String translationKey = enchantment.getTranslationKey();
-
+            
             if (I18n.hasTranslation(translationKey)) {
                 this.translatedName = I18n.translate(translationKey);
                 return this.translatedName;
