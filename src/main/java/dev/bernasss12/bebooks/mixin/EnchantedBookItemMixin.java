@@ -12,7 +12,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(EnchantedBookItem.class)
 @Environment(EnvType.CLIENT)
 public abstract class EnchantedBookItemMixin {
-    @Inject(method = "hasGlint", at = @At(value = "RETURN"), cancellable = true)
+    @Inject(method = "hasGlint", at = @At("RETURN"), cancellable = true)
     public void hasGlintReturn(CallbackInfoReturnable<Boolean> info){
         info.setReturnValue(ModConfig.glintSetting);
     }
