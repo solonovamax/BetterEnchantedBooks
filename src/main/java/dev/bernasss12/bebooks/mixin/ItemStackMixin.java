@@ -36,7 +36,6 @@ public abstract class ItemStackMixin {
     }
 
     // ItemStack.appendEnchantments's lambda
-    @SuppressWarnings("UnresolvedMixinReference")
     @Inject(at = @At("HEAD"), method = "method_17869(Ljava/util/List;Lnet/minecraft/nbt/NbtCompound;Lnet/minecraft/enchantment/Enchantment;)V")
     private static void setShowEnchantmentMaxLevel(List<Text> tooltip, NbtCompound tag, Enchantment enchantment, CallbackInfo info) {
         if (ModConfig.doShowEnchantmentMaxLevel) {
@@ -45,7 +44,6 @@ public abstract class ItemStackMixin {
     }
 
     // ItemStack.appendEnchantments's lambda
-    @SuppressWarnings("UnresolvedMixinReference")
     @Inject(at = @At("TAIL"), method = "method_17869(Ljava/util/List;Lnet/minecraft/nbt/NbtCompound;Lnet/minecraft/enchantment/Enchantment;)V")
     private static void addTooltipSpacers(List<Text> tooltip, NbtCompound tag, Enchantment enchantment, CallbackInfo info) {
         if (MinecraftClient.getInstance().currentScreen instanceof HandledScreen) {

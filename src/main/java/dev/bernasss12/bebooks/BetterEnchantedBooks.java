@@ -27,17 +27,15 @@ public class BetterEnchantedBooks implements ClientModInitializer {
     public static final Logger LOGGER = LogManager.getLogger("BEBooks");
     //public static final ModConfig CONFIG =
 
-    private static Map<ItemStack, Integer> cachedColors;
+    private static final Map<ItemStack, Integer> cachedColors = new WeakHashMap<>();
 
     public static final ThreadLocal<ItemStack> enchantedItemStack = ThreadLocal.withInitial(() -> ItemStack.EMPTY);
     public static final ThreadLocal<Boolean> shouldShowEnchantmentMaxLevel = ThreadLocal.withInitial(() -> false);
 
-    public static Map<Enchantment, List<ItemStack>> cachedApplicableEnchantments;
+    private static final Map<Enchantment, List<ItemStack>> cachedApplicableEnchantments = new WeakHashMap<>();
 
     @Override
     public void onInitializeClient() {
-        cachedColors = new WeakHashMap<>();
-        cachedApplicableEnchantments = new WeakHashMap<>();
 
         ColorProviderRegistry.ITEM.register((stack, tintIndex) -> tintIndex == 1 ? getColorFromEnchantmentList(stack) : -1, Items.ENCHANTED_BOOK);
     }

@@ -36,7 +36,8 @@ public abstract class ScreenMixin extends DrawableHelper {
     @ModifyArg(
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/client/gui/screen/Screen;renderTooltipFromComponents(Lnet/minecraft/client/util/math/MatrixStack;Ljava/util/List;II)V"
+                    target = "Lnet/minecraft/client/gui/screen/Screen;renderTooltipFromComponents" +
+                             "(Lnet/minecraft/client/util/math/MatrixStack;Ljava/util/List;II)V"
             ),
             method = "renderTooltip(Lnet/minecraft/client/util/math/MatrixStack;Ljava/util/List;Ljava/util/Optional;II)V",
             index = 1
@@ -45,19 +46,17 @@ public abstract class ScreenMixin extends DrawableHelper {
         if (BetterEnchantedBooks.enchantedItemStack.get().getItem().equals(Items.ENCHANTED_BOOK)) {
             if (ModConfig.tooltipSetting == ModConfig.TooltipSetting.ENABLED ||
                 (ModConfig.tooltipSetting == ModConfig.TooltipSetting.ON_SHIFT && Screen.hasShiftDown())) {
-                return components.stream().map(
-                        originalComponent -> {
-                            OrderedText text;
-                            if (originalComponent instanceof OrderedTextTooltipComponentAccessor orderedComponent) {
-                                text = orderedComponent.getText();
-                                
-                                if (text instanceof IconTooltipDataText iconText) {
-                                    return new IconTooltipComponent(ModConfig.tooltipIconScale, iconText.icons());
-                                }
-                            }
-                            return originalComponent;
+                return components.stream().map(originalComponent -> {
+                    OrderedText text;
+                    if (originalComponent instanceof OrderedTextTooltipComponentAccessor orderedComponent) {
+                        text = orderedComponent.getText();
+                        
+                        if (text instanceof IconTooltipDataText iconText) {
+                            return new IconTooltipComponent(ModConfig.tooltipIconScale, iconText.icons());
                         }
-                                              ).collect(Collectors.toList());
+                    }
+                    return originalComponent;
+                }).collect(Collectors.toList());
             }
         }
         return components;
